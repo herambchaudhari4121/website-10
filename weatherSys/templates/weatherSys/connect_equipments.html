@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>连接设备</title>
+</head>
+<body>
+
+<h2>未连接设备：</h2>
+{% for x in tree %}
+<p>{{ x }}</p>
+{% endfor %}
+
+<p>
+    <div class="container">
+            <div class="col">
+             <form class="form-login" action="/console/connect_equipments/" method="post">
+                  {% if message %}
+                    <div class="alert alert-warning">{{ message }}</div>
+                  {% endif %}
+                  {% csrf_token %}
+                  <h3 class="text-center">连接项目</h3>
+                  <div class="form-group">
+                    <label for="id_username">设备号：</label>
+                    <input type="text" name='eid' class="form-control" id="eid" placeholder="Eid" autofocus required>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary float-right">连接</button>
+
+                </form>
+            </div>
+    </div>
+ <button onclick="window.location.href = '/console/equipments/'">返回</button>
+
+
+</p>
+</body>
+</html>

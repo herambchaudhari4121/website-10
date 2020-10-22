@@ -1,0 +1,40 @@
+<p>12</p>
+<body>
+<button onclick="Filter()">test</button>
+</body>
+
+<script type="text/javascript">
+	function Filter() {
+        if ("WebSocket" in window) {
+            //alert("您的浏览器支持WebSocket!");
+            // 重定向URL
+            var eid = "HZGD12345"
+            let ws = new WebSocket("ws://121.36.193.217:10002/ws/remote_control");
+            var messageObj = {"eid":"HZG070A4007002"};
+            var messageJson = JSON.stringify(messageObj);
+            ws.onopen = function () {
+                // Web Socket 已连接上，使用 send() 方法发送数据
+
+                {#ws.send(eid);#}
+
+                ws.send(messageJson);
+                alert("数据发送中...");
+            };
+
+            ws.onmessage = function (evt) {
+                var received_msg = evt.data;
+
+                alert(received_msg)
+            };
+
+
+            ws.onclose = function () {
+                // 关闭 websocket
+                alert("连接已关闭...");
+            };
+        }
+        else {
+            alert("你的浏览器不支持WebSocket!");
+        }
+    }
+</script>

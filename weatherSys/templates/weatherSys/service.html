@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>首页</title>
+</head>
+<body>
+
+
+<h1>登陆成功！</h1>
+<h2>项目：</h2>
+{% for x in tree %}
+<p>{{ x }}</p>
+{% endfor %}
+
+<p>
+    <div class="container">
+            <div class="col">
+             <form class="form-login" action="/console/service/" method="post">
+                  {% if message %}
+                    <div class="alert alert-warning">{{ message }}</div>
+                  {% endif %}
+                  {% csrf_token %}
+                  <h3 class="text-center">管理项目</h3>
+                  <div class="form-group">
+                    <label for="id_username">项目号：</label>
+                    <input type="text" name='service' class="form-control" id="service" placeholder="Service" autofocus required>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary float-right">进入</button>
+
+                </form>
+            </div>
+    </div>
+ <button onclick="window.location.href = '/console/'">返回</button>
+
+
+</p>
+</body>
+</html>

@@ -1,0 +1,54 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- 上述meta标签*必须*放在最前面，任何其他内容都*必须*跟随其后！ -->
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{% static 'pre/css/pre.css' %}" rel="stylesheet"/>
+    <title>添加业务</title>
+  </head>
+  <body>
+    <div class="container">
+            <div class="col">
+             <form class="form-add_service" action="/console/add_service/" method="post">
+                  {% if message %}
+                    <div class="alert alert-warning">{{ message }}</div>
+                  {% endif %}
+                  {% csrf_token %}
+                  <h3 class="text-center">请添加服务</h3>
+                  <div class="form-group">
+                    <label for="id">id：</label>
+                    <input type="text" name='id' class="form-control" id="id" placeholder="Id" autofocus required>
+                  </div>
+                  <div class="form-group">
+                    <label for="code">编号：</label>
+                    <input type="text" name='code' class="form-control" id="code" placeholder="Code" autofocus required>
+                  </div>
+                 <div class="form-group">
+                    <label for="name">名称：</label>
+                    <input type="text" name='name' class="form-control" id="name" placeholder="Name" autofocus required>
+                  </div>
+                 <div class="form-group">
+                    <label for="parent_code">上级编号：</label>
+                    <input type="text" name='parent_code' class="form-control" id="parent_code" placeholder="Parent_code">
+                  </div>
+                  <div>
+                  <button type="submit" class="btn btn-primary float-right">添加</button>
+                  </div>
+                </form>
+            </div>
+    </div> <!-- /container -->
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    {#    以下三者的引用顺序是固定的#}
+    <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.js"></script>
+    <script src="https://cdn.bootcss.com/popper.js/1.15.0/umd/popper.js"></script>
+    <script src="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+  </body>
+</html>

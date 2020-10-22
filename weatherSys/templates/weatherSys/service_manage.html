@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>首页</title>
+</head>
+<body>
+
+
+<h1>项目信息！</h1>
+<h2>下属项目：</h2>
+{% for x in tree %}
+<p>{{ x }}</p>
+{% endfor %}
+
+
+
+ <button onclick="window.location.href = '/console/service/'">返回</button>
+<button onclick="window.location.href = '/console/user/'">用户</button>
+ <button onclick="window.location.href = '/console/equipments/'">设备</button>
+
+</body>
+</html>
