@@ -44,7 +44,7 @@ def soil_data_receive(username):
 def report_rate(station_id, username, obs_time):
     now_time = int(time.time())
     # obs_time = now_time - now_time % 86400 + time.timezone
-    obs_time = obs_time[:-3]
+    obs_time = obs_time
     data = db.report_rate(station_id,username, str(obs_time))
     if data:
         total_num = (now_time-int(obs_time))//3600
@@ -61,7 +61,7 @@ def report_rate(station_id, username, obs_time):
 
 def get_report(station_id,obs_time):
     now_time = int(time.time())
-    obs_time = obs_time[:-3]
+    obs_time = obs_time
     # obs_time = now_time - now_time % 86400 + time.timezone
     time_box = [x*3600 + int(obs_time) for x in range(24) if x*3600 + int(obs_time) <= now_time]
     report_box = [0]*len(time_box)
@@ -135,7 +135,7 @@ def chongqing_statistic(username, start, end, district, station_id):
                     data_box[x[9]] = {'district': x[12],
                                       'station_name': x[1],
                                       'district': x[12],
-                                      'obs_time':int(start[:-2]),
+                                      'obs_time':int(start),
                                       'address':x[7],
                                       'soil_volume_20': [float(x[16][0])],
                                       'soil_volume_40': [float(x[16][1])],
@@ -146,7 +146,7 @@ def chongqing_statistic(username, start, end, district, station_id):
                     data_box[x[9]] = {'district': x[12],
                                       'station_name': x[1],
                                       'district': x[12],
-                                      'obs_time': int(start[:-2]),
+                                      'obs_time': int(start),
                                       'address': x[7],
                                       'soil_volume_20': [],
                                       'soil_volume_40': [],
@@ -224,10 +224,8 @@ def chongqing_line(username, start, end, station_id):
 
 def vertical_statistic(username, day_1, day_2, district, station_id):
 
-    data_1 = db.chongqing_features(username, day_1[0][:-3], day_1[1][:-3], district, station_id)
-    data_2 = db.chongqing_features(username, day_2[0][:-3], day_2[1][:-3], district, station_id)
-    print('data_1',data_1)
-    print('data_2',data_2)
+    data_1 = db.chongqing_features(username, day_1[0], day_1[1], district, station_id)
+    data_2 = db.chongqing_features(username, day_2[0], day_2[1], district, station_id)
     data_box = {}
     for x in data_1:
         if x[9] not in data_1:
@@ -311,7 +309,7 @@ def equip_all_info(e_code, username, useradmin):
     for x in equip:
         x['sub_device'] = []
         x['extend_data'] = {}
-
+    print(extra)
     for x in sub:
         for y in equip:
             if x[0] == y['eid']:

@@ -83,7 +83,7 @@ class status_warning_monitor:
                 if y['eid'] in user_equip:
                     send_box.append(y)
             data = {'map_point':send_box}
-            print(x)
+
 
             await layers_manage.status_warning_monitor(x, data)
         await layers_manage.status_warning_monitor('admin', map_point)

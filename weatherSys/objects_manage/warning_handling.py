@@ -6,7 +6,6 @@ import time
 def event_count(username, useradmin):
     warning_type = {1: '高温预警', 2: '路面状况预警', 3: '能见度预警', 4: '降雨预警', 5: '大风预警'}
     data = db.event_count(username, useradmin)
-    print('warning', data)
     # warning_data = {1:[],2:[],3:[],4:[],5:[]}
     warning_data = {}
     count = {1:0,2:0,3:0,4:0,5:0}
@@ -19,8 +18,7 @@ def event_count(username, useradmin):
 
         for x in warning_data:
             for y in warning_data[x]:
-                if y == 2:
-                    print(warning_data[x][y])
+
 
                 box = []
                 for index, z in enumerate(warning_data[x][y]):
@@ -33,7 +31,6 @@ def event_count(username, useradmin):
 
                 count[y] += num
                 total += num
-    print(count)
     transfer_count = {}
     for x in count:
         transfer_count[warning_type[x]] = count[x]

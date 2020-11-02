@@ -135,7 +135,6 @@ def add_sub_device(basic_info, new_sub_device, sub_device):
 
 def add_extend(basic_info, extend_data):
     extend_connection = [[basic_info['eid'], x, "'{" + ','.join(extend_data[x]) + "}'"] for x in extend_data]
-    print(extend_connection)
     result = equipments.add_extend(extend_connection)
     if result:
         return True
@@ -166,6 +165,60 @@ def equip_name():
 
 
 
+# def equip_all_info(e_code, username, useradmin):
+#     eid_list = []
+#     if e_code:
+#         equip = db.column_name('wsys_equipment_info', equipments.equip_type(e_code))
+#     else:
+#         equip = db.column_name('wsys_equipment_info', equipments.show_equip(eid_list, username, useradmin))
+#
+#     extra = equipments.show_extr(eid_list)
+#     sub = equipments.show_sub_device(eid_list)
+#
+#     for x in equip:
+#         x['sub_device'] = []
+#         x['extend_data'] = {}
+#
+#     for x in sub:
+#         for y in equip:
+#             if x[0] == y['eid']:
+#                 y['sub_device'].append({'id': x[1], 'station_name': x[2], 'station_type': x[3]})
+#     """
+#     土壤水分参数纵转横
+#     """
+#     for y in equip:
+#         level = []
+#         for x in extra:    # 每个设备对应辅助表内的信息
+#             if x[1] == y['eid']:    # 如果对上了
+#                 if x[2] != '0208' and x[2] != '0209':   # 除了0208,0209这两个对应整设备的
+#                     # if x[3]:    # 如果数据不为空
+#                     if level:   # 如果变量已声明
+#                         for index, z in enumerate(level):   # level内对应index位置找extr内参数
+#                             if index >= len(x[3]):  # 如果位置对应不上，空值
+#                                 z.append('')
+#                             else:
+#                                 z.append(x[3][index])   # 否则加入值
+#                         y['extend_data']['column'].append(x[2])
+#                         y['extend_data']['id'].append(x[0])
+#                     else:
+#                         if x[3]:
+#                             level = [[x] for x in x[3]]     # 声明
+#                         else:
+#                             level = [[""]]
+#                         y['extend_data']['column'] = [x[2]]
+#                         y['extend_data']['id'] = [x[0]]
+#                     y['extend_data']['data'] = level
+#                 else:
+#                     if x[3]:
+#                         single = x[3]
+#                     else:
+#                         single = [""]
+#                     single.append(x[0])
+#                     y['extend_data'][x[2]] = single
+#     equipments.db_close()
+#     return equip
+
+
 def equip_all_info(e_code, username, useradmin):
     eid_list = []
     if e_code:
@@ -173,52 +226,63 @@ def equip_all_info(e_code, username, useradmin):
     else:
         equip = db.column_name('wsys_equipment_info', equipments.show_equip(eid_list, username, useradmin))
 
-    extra = equipments.show_extr(eid_list)
+    # extra = equipments.show_extr(eid_list)
     sub = equipments.show_sub_device(eid_list)
+
 
     for x in equip:
         x['sub_device'] = []
         x['extend_data'] = {}
 
-    for x in sub:
-        for y in equip:
-            if x[0] == y['eid']:
-                y['sub_device'].append({'id': x[1], 'station_name': x[2], 'station_type': x[3]})
-    """
-    土壤水分参数纵转横
-    """
-    for y in equip:
-        level = []
-        for x in extra:    # 每个设备对应辅助表内的信息
-            if x[1] == y['eid']:    # 如果对上了
-                if x[2] != '0208' and x[2] != '0209':   # 除了0208,0209这两个对应整设备的
-                    # if x[3]:    # 如果数据不为空
-                    if level:   # 如果变量已声明
-                        for index, z in enumerate(level):   # level内对应index位置找extr内参数
-                            if index >= len(x[3]):  # 如果位置对应不上，空值
-                                z.append('')
-                            else:
-                                z.append(x[3][index])   # 否则加入值
-                        y['extend_data']['column'].append(x[2])
-                        y['extend_data']['id'].append(x[0])
-                    else:
-                        if x[3]:
-                            level = [[x] for x in x[3]]     # 声明
-                        else:
-                            level = [[""]]
-                        y['extend_data']['column'] = [x[2]]
-                        y['extend_data']['id'] = [x[0]]
-                    y['extend_data']['data'] = level
-                else:
-                    if x[3]:
-                        single = x[3]
-                    else:
-                        single = [""]
-                    single.append(x[0])
-                    y['extend_data'][x[2]] = single
+    if sub:
+        for x in sub:
+            for y in equip:
+                if x[0] == y['eid']:
+                    y['sub_device'].append({'id': x[1], 'station_name': x[2], 'station_type': x[3]})
+
     equipments.db_close()
     return equip
 
+
+
+def show_extra(eid):
+    extra =  equipments.show_extra(eid)
+    result = {'extend_data':[], '0208':[], '0209':[]}
+    data = {}
+    matrix = {}
+    extra_item = []
+
+    for index,x in enumerate(extra):
+        if x[2] == '0208' or x[2] == '0209' or x[2] == '010201':
+            if x[2] == '0208':
+                if x[3]:
+                    result['0208'] = [x[3][0]]
+                else:
+                    result['0208'] = ['']
+            else:
+                if x[2] == '0209':
+                    if x[3]:
+                        result['0209'] = [x[3][0]]
+                    else:
+                        result['0209'] = ['']
+        else:
+            extra_item.append(x)
+
+
+
+    for x in extra_item:
+        matrix[x[2]] = x[3]
+    for i in range(len(matrix['0201'])):
+        inner = {}
+        for x in matrix:
+            inner[x] = ''
+        result['extend_data'].append(inner)
+
+    # result['extend_data'] = [len(matrix['0201']) * {}]
+    for x in matrix:
+        for index, y in enumerate(matrix[x]):
+            result['extend_data'][index][x] = y
+    return result
 
 def unconnected_equip():
     equip = db.column_name('wsys_equipment_info', equipments.unconnected_equip())
@@ -297,49 +361,72 @@ def manage_equipments(d):
 
 
 def manage_parameter(d):
+
+    # extend_data = d['extend_data']
+    # line_id = d['id']
+    # column = d['column']
+    # eid = d['eid']
+    # update_dict = {x: [] for x in line_id}
+    # redis_update_dict = {x:[] for x in column}
+    # if not extend_data:
+    #     d['extend_data'].append(len(line_id)*[[]])
+    # for index, x in enumerate(line_id):
+    #     for y in extend_data:
+    #         if y[index]:
+    #             update_dict[x].append(y[index])
+    # for index, x in enumerate(column):
+    #     for y in extend_data:
+    #         if y[index]:
+    #             redis_update_dict[x].append(y[index])
+    #
+    #
+    # for x in d['single']:
+    #     if x['value']:
+    #         update_dict[x['id']] = [x['value']]
+    #     else:
+    #         update_dict[x['id']] = []
+    # for x in d['single']:
+    #     if x['value']:
+    #         redis_update_dict[x['column']] = [x['value']]
+    #     else:
+    #         redis_update_dict[x['column']] = []
+    # for x in redis_update_dict:
+    #     redis_update_dict[x] = ','.join(redis_update_dict[x])
+
+
+
     extend_data = d['extend_data']
-    line_id = d['id']
-    column = d['column']
-    eid = d['eid']
-    update_dict = {x: [] for x in line_id}
-    redis_update_dict = {x:[] for x in column}
-    if not extend_data:
-        d['extend_data'].append(len(line_id)*[[]])
-    for index, x in enumerate(line_id):
-        for y in extend_data:
-            if y[index]:
-                update_dict[x].append(y[index])
-    for index, x in enumerate(column):
-        for y in extend_data:
-            if y[index]:
-                redis_update_dict[x].append(y[index])
+    update_data = {}
+    for x in extend_data:
+        for y in x:
+            if y not in update_data:
+                update_data[y] = x[y] +","
+            else:
+                update_data[y] += x[y] + ","
+    for x in update_data:
+        update_data[x] = update_data[x][:-1]
+    if "0208" in d:
+        update_data["0208"] = d["0208"]
+    if "0209" in d:
+        update_data["0209"] = d["0209"]
+    eid = d["eid"]
 
-
-    for x in d['single']:
-        if x['value']:
-            update_dict[x['id']] = [x['value']]
-        else:
-            update_dict[x['id']] = []
-    for x in d['single']:
-        if x['value']:
-            redis_update_dict[x['column']] = [x['value']]
-        else:
-            redis_update_dict[x['column']] = []
-    for x in redis_update_dict:
-        redis_update_dict[x] = ','.join(redis_update_dict[x])
-
-    if not equipments.update_extend(update_dict):
+    if not equipments.update_extend(update_data, eid):
         equipments.db_close()
         return 0
     result = equipments.db_confirm()
 
-    redis_4.hmset(eid, redis_update_dict)
+    redis_4.hmset(eid, update_data)
 
     if result:
         equipments.db_close()
     else:
         equipments.db_close()
+
     return 1
+
+
+    # return 1
 
 def modify_db_station_id(eid, station_id):
     if not equipments.modify_db_station_id(eid,station_id):
@@ -352,41 +439,6 @@ def modify_db_station_id(eid, station_id):
         equipments.db_close()
     return 1
 
-# def map_point(username, useradmin):
-#     result = equipments.map_point(username, useradmin)
-#     data = []
-#     warning_type = {1: '高温预警', 2: '路面状况预警', 3: '能见度预警', 4: '降雨预警', 5: '大风预警'}
-#     warning_lev = {1: '红', 2: '橙', 3: '黄', 4: '蓝'}
-#     warning_type_en = {1: 'temperature', 2: 'road', 3: 'fog', 4: 'rianfall', 5: 'speed', None: 'normal'}
-#     warning_lev_en = {1: 'red', 2: 'orange', 3: 'yellow', 4: 'blue', None: 'green'}
-#
-#     for x in result:
-#         description = ''
-#         if x[7]:
-#             description = '位于' + x[2] + '的路面于北京时间,' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(x[7])) + ' 报告' + \
-#                           warning_lev[int(x[8])] + '色级别' + warning_type[int(x[10])] + '，报警状况为： ' + warning_type[int(x[10])][:-2] + " " + \
-#                           x[9]
-#
-#
-#         data.append({
-#             "eid":x[0],
-#             "station_name":x[1],
-#             "address":x[2],
-#             "lat_lon":[float(x[3]),float(x[4])],
-#             "warning":description,
-#             "obs_time":x[7],
-#             "status":x[5],
-#             "status_time":x[6],
-#             "warning_level": warning_lev_en[x[8]],
-#             "warning_type": warning_type_en[x[10]]
-#
-#         })
-#         print(data)
-#
-#     return data
-
-
-
 
 def map_point(username, useradmin):
     redis_3 = StrictRedis(host='localhost', port=6379, db=3, decode_responses=True, password='hzg61270388*!')
@@ -398,7 +450,7 @@ def map_point(username, useradmin):
     map_point = []
     warning_type = {1: '高温预警', 2: '路面状况预警', 3: '能见度预警', 4: '降雨预警', 5: '大风预警'}
     warning_lev = {1: '红', 2: '橙', 3: '黄', 4: '蓝'}
-    warning_type_en = {1: 'temperature', 2: 'road', 3: 'fog', 4: 'rianfall', 5: 'speed', None: 'normal'}
+    warning_type_en = {1: 'temperature', 2: 'road', 3: 'fog', 4: 'rainfall', 5: 'speed', None: 'normal'}
     warning_lev_en = {1: 'red', 2: 'orange', 3: 'yellow', 4: 'blue', None: 'green'}
     for x in status:
         status_data = redis_3.hgetall(x)
@@ -442,8 +494,7 @@ def map_point(username, useradmin):
         for x in map_point:
             if x['eid'] in user_equip:
                 send_box.append(x)
-    print('send_box',send_box)
-    print('map_point', map_point)
+
 
     if username == 'admin':
         return map_point
@@ -506,10 +557,9 @@ def get_success_rate(username, useradmin):
     success_num = db.get_success_num(eid_list, useradmin)
     station_list = []
     rate_list = []
-    print(success_num)
+
     if success_num:
         for x in success_num:
-            # print('station_name',redis_3.hget(x[0],'station_name'))
             station_list.append(redis_3.hget(x[0],'station_name'))
             if x[1] >= 1440 :
                 rate_list.append(100)

@@ -24,7 +24,7 @@ def set_weather_time(eid_list, key):
     data = {'commands': {x: 'DATETIME ' + th.timestamp_to_string(time.time()) + '\r' + '\n'} for x in eid_list}
     data['uid'] = key
     data['identity'] = '1'
-    print(data)
+
 
     return requests.post(address, data=json.dumps(data), verify=False).content
 
@@ -68,7 +68,7 @@ def soil_re_write(eid_list, start_time, end_time, key):
 def soil_command_generator(length, command_index, middle, eid_list):
     commands_dic = {}
     for eid in eid_list:
-        print(length)
+
         commands = b'\xaa' + length + command_index + int(eid.split('HZG04DZN2')[1]).to_bytes(length=2, byteorder='little', signed=False) + middle
         commands += int(sum(x for x in commands[2:])).to_bytes(length=2, byteorder='little', signed=False) + b'\xdd'
         print(commands)

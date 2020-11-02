@@ -301,6 +301,12 @@ class equipments:
                     join wsys_service_user su on s.code = su.service_code\
                     join wsys_user u on su.user_id = u.id\
                     where u.user_name = '" + username + "' order by e.station_id")
+                    print("select distinct e.* from wsys_equipment_info e \
+                    join wsys_service_equipment se on e.eid = se.eid\
+                    join wsys_service s on se.code = s.code\
+                    join wsys_service_user su on s.code = su.service_code\
+                    join wsys_user u on su.user_id = u.id\
+                    where u.user_name = '" + username + "' order by e.station_id")
                 else:
                     self.cur.execute("select * from wsys_equipment_info order by station_id")
             data = self.cur.fetchall()
@@ -439,6 +445,7 @@ def kriging(username, timestamp):
             join wsys_service_user su on su.service_code = se.code\
             join wsys_user u on su.user_id = u.id\
             where u.user_name = '" + username + "' and f.obs_time = " + timestamp )
+
         data = cur.fetchall()
         cur.close()
         conn.close()

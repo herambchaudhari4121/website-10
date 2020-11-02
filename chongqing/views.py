@@ -70,8 +70,8 @@ def chongqing_features(request):
     except:
         return JsonResponse({'code': -1, 'msg': '缺少token/username'}, json_dumps_params={'ensure_ascii': False})
 
-    start =  str(int(json_transfer(request.body)['start'])/1000)
-    end =  str(int(json_transfer(request.body)['end'])/1000)
+    start =  str(int(json_transfer(request.body)['start']))
+    end =  str(int(json_transfer(request.body)['end']))
     district = json_transfer(request.body)['district']
     station_id = json_transfer(request.body)['station_id']
     return JsonResponse({'records': eh.chongqing_features(username, start, end, district, station_id)})
@@ -85,8 +85,8 @@ def chongqing_statistic(request):
             return JsonResponse({'code': -1, 'msg': '登录过期'}, json_dumps_params={'ensure_ascii': False})
     except:
         return JsonResponse({'code': -1, 'msg': '缺少token/username'}, json_dumps_params={'ensure_ascii': False})
-    start =  str(int(json_transfer(request.body)['start'])/1000)
-    end =  str(int(json_transfer(request.body)['end'])/1000)
+    start =  str(int(json_transfer(request.body)['start']))
+    end =  str(int(json_transfer(request.body)['end']))
     district = json_transfer(request.body)['district']
     station_id = json_transfer(request.body)['station_id']
 
@@ -102,8 +102,8 @@ def chongqing_line(request):
             return JsonResponse({'code': -1, 'msg': '登录过期'}, json_dumps_params={'ensure_ascii': False})
     except:
         return JsonResponse({'code': -1, 'msg': '缺少token/username'}, json_dumps_params={'ensure_ascii': False})
-    start =  str(int(json_transfer(request.body)['start'])/1000)
-    end =  str(int(json_transfer(request.body)['end'])/1000)
+    start =  str(int(json_transfer(request.body)['start']))
+    end =  str(int(json_transfer(request.body)['end']))
     station_id = json_transfer(request.body)['station_id']
     return JsonResponse({'records': eh.chongqing_line(username, start, end, station_id)})
 
@@ -208,8 +208,9 @@ def kriging(request):
         return JsonResponse({'code': -1, 'msg': '缺少token/username'}, json_dumps_params={'ensure_ascii': False})
     if request.method == 'POST':
         d = json_transfer(request.body)
-        print(d)
-        timestamp = str(int(d['time'][:-3]) - int(d['time'][:-3])%3600)
+
+        timestamp = str(int(d['time']) - int(d['time'])%3600)
+
     return JsonResponse({'records': eh.kriging(username,timestamp)})
 
 

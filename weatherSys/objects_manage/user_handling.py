@@ -33,35 +33,33 @@ def add(username, password, service_code, role):
     return 1
 
 
+# def user_list(username, useramdin):
+#     u = user.user_list(username, useramdin)
+#     column = ['id', 'user_name', 'service_name', 'service_code', 'create_time']
+#     unique_user_id = []
+#     unique_user = []
+#     for index,x in enumerate(u):
+#         if x[0] not in unique_user_id:
+#             unique_user.append(x)
+#             unique_user_id.append(x[0])
+#     result = result_to_dic.to_dic(unique_user, column)
+#     user.db_close()
+#     return result
+
+
 def user_list(username, useramdin):
-    u = user.user_list(username, useramdin)
-    column = ['id', 'user_name', 'service_name', 'service_code', 'create_time']
-    result = result_to_dic.to_dic(u, column)
-    user.db_close()
-    return result
+    u = db.user_list(username, useramdin)
+    data = [dict(row) for row in u]
+    return data
 
 
-def modify_user(user_id, user_name, service_code, password, status):
-    status = str(status)
-    if db.user_name_exists(user_name):
-        user.db_close()
-        return 2
-    if not user.modify_user(user_id, user_name,password):
+
+def modify_user(user_id):
+
+
+    if not user.modify_user(user_id):
         user.db_close()
         return 0
-    if status:
-        if status == "1":
-            if not user.update_user_service(user_id, service_code):
-                user.db_close()
-                return 0
-        if status == "2":
-            if not user.add_user_service([[user_id, service_code]]):
-                user.db_close()
-                return 0
-        if status == "3":
-            if not user.delete_user_service([user_id]):
-                user.db_close()
-                return 0
     if user.db_confirm():
         user.db_close()
     else:

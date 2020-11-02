@@ -31,7 +31,6 @@ def data_show_room(eid_list, column, period, page, size):
     feature = result[0]  # 取得数据
     page_number = False
     if page:
-        print(result)
         total_numbers = int(result[1])
         page_number = total_numbers // int(size) + 1
     #  feature: f.eid, f.obs_time, e.name, f.obs_date, e.addr_value
@@ -191,7 +190,6 @@ def feature_now(eid_list):
 def initial_data(page, size, username, useradmin):
     records = []
     result = db.initial_data(page, size, username, useradmin)
-    # print('result', result)
     data = result[0]
     #  feature: f.eid, f.obs_time, e.name, f.obs_date, e.addr_value
 
@@ -202,11 +200,9 @@ def initial_data(page, size, username, useradmin):
 
     if not data:
         return False, 0
-    print(data)
     for x in data:
         features = x[5: 5 + 11]
         # quality = x[5 + 11: 5 + 11 * 2]
-        # print(quality)
         values = {
             "eid": x[0],
             "name": x[2],
@@ -233,7 +229,6 @@ def initial_data(page, size, username, useradmin):
                 values[z] = features[index]
         values['q_code'] = q_code
         records.append(values)
-    print(1)
     return records, total_numbers
 
 
@@ -270,7 +265,6 @@ def line_data(eid_list, column, period):
     #                 box[x][1].append(y[5 + index])
     #
     #         data.append(box)
-    # print(data)
 
     if column[0] not in soil_column:
         for index, x in enumerate(column):
@@ -331,7 +325,6 @@ def traffic_line(eid_list, column, period):
 def feature_his(eid_list, column, period, page, size):
     records = []
     result = db.feature_his(eid_list, column, period, page, size)
-    # print('result', result)
     data = result[0]
     #  feature: f.eid, f.obs_time, e.name, f.obs_date, e.addr_value
 
@@ -343,7 +336,6 @@ def feature_his(eid_list, column, period, page, size):
     for x in data:
         features = x[5: 5 + len(column)]
         quality = x[5 + len(column): 5 + len(column) * 2]
-        # print(quality)
         values = {
             "eid": x[0],
             "name": x[2],

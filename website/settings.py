@@ -29,7 +29,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 WEBSOCKET_FACTORY_CLASS = 'dwebsocket.backends.uwsgi.factory.uWsgiWebSocketFactory'
 # ASGI_APPLICATION = 'webssh.routing.application'
-WSGI_APPLICATION = 'MsgCenter.wsgi.application'
+WSGI_APPLICATION = 'website.wsgi.application'
 
 
 # Application definition
@@ -44,7 +44,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
-    'live_data'
+    'live_data',
+    'channels'
 ]
 
 ASGI_APPLICATION = "website.routing.application"  # 上面新建的 asgi 应用

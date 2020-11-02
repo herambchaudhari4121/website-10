@@ -4,10 +4,14 @@ import random
 import logging
 from asgiref.sync import async_to_sync
 from . import current_data as cd
+current_data = cd.current_data()
 import json
 from redis import StrictRedis
 redis_10 = StrictRedis(host='localhost', port=6379, db=10, decode_responses=True, password='hzg61270388*!')
+from . import wind_data as wd
 import time
+import token_module
+
 
 @database_sync_to_async
 def save_channel_name(key, channel_name, group_name):
@@ -42,7 +46,12 @@ class ListDataConsumer(AsyncJsonWebsocketConsumer):
         # await self.send_json({"result":"connection successful"})
         # await self.channel_layer.group_send(eid, {"type": "test.message", "data": {"eid": "12345"}})
     async def disconnect(self, code):
-
+        print(self.__dict__)
+        if 'channel_name' in self.__dict__:
+            if 'username' in self.__dict__:
+                await self.channel_layer.group_discard(self.username,self.channel_name)
+            if 'eid' in self.__dict__:
+                await self.channel_layer.group_discard(self.eid, self.channel_name)
         print('关闭连接')
 
 
@@ -57,65 +66,71 @@ class ListDataConsumer(AsyncJsonWebsocketConsumer):
 
     async def receive_json(self, content, **kwargs):
         # if 'username' not in content:
-        current_data = cd.current_data()
-        eid = content['eid']
-        last_eid = content['last_eid']
-        # key = "asgi:group:"+eid
-        # redis_10.zrem(key, self.channel_name)
-        # await redis_10.delete(key)
-        if last_eid:
-            await self.channel_layer.group_discard(last_eid, self.channel_name)
-        # self.disconnect(eid)
 
-        await self.channel_layer.group_add(eid, self.channel_name)
-        try:
-            data = json.dumps(current_data.data_box[eid])
-        except:
-            data = json.dumps({"result":None})
-        await self.channel_layer.group_send(eid, {"type": "test_message", "data": data})
-        # else:
-        #     username = content['username']
-        #     await self.channel_layer.group_add(username, self.channel_name)
+        if content['data_type'] == 'live_data':
+            current_data = cd.current_data()
+            self.eid = content['eid']
+            last_eid = content['last_eid']
+            if 'username' and 'token' in content:
+                username = content['username']
+                token = content['token']
+                if not token_module.authenticate(username, token):
+                    await self.channel_layer.group_send(self.eid, {"type": "test_message", "data": {"data":"token过期","data_type":"token"}})
+                useradmin = token_module.authenticate(username, token)
 
+                if last_eid:
+                    await self.channel_layer.group_discard(last_eid, self.channel_name)
+                # self.disconnect(eid)
+                await self.channel_layer.group_add(self.eid, self.channel_name)
+                # picture = 'sun.jpg'
+                try:
+                    # data = json.dumps(current_data.data_box[self.eid])
+                    data = current_data.data_box[self.eid]
+                    picture_name = cd.get_pic(data)
+                except:
+                    # data = json.dumps({"result":None})
+                    data = {"result": None}
+                    picture_name = ''
+                await self.channel_layer.group_send(self.eid, {"type": "test_message", "data": {"data":data,"data_type":"live_data","picture":picture_name}})
 
-# class statusWarningMonitor(AsyncJsonWebsocketConsumer):
-#     async def connect(self):
-#         await self.accept()
-#         logging.info('warning_connect')
-#         # await self.channel_layer.group_add(username, self.channel_name)
-#
-#     async def receive_json(self, content, **kwargs):
-#         username = content['username']
-#         await self.channel_layer.group_add(username, self.channel_name)
-#
-#     async def disconnect(self, code):
-#         print('关闭连接')
-#
-#     async def status_warning_monitor(self, event):
-#         data = event['data']
-#         await self.send_json(data)
+            else:
+                await self.channel_layer.group_send(self.eid, {"type": "test_message",
+                                                          "data": {"data": "缺少username/token", "data_type": "token"}})
 
 
-class RemoteControl(AsyncJsonWebsocketConsumer):
-    async def connect(self):
-        logging.info('back_connect')
-        await self.accept()
-        await self.channel_layer.group_add('back_end', self.channel_name)
-        await self.channel_layer.group_send('back_end', {"type": "back_connect", "data": {"result":"connect_success"}})
+        if content['data_type'] == 'real_data':
+            # self.channel_layer.group_send()
+            await self.channel_layer.group_add('real_data', self.channel_name)
+            eid = content['eid']
+            data = content['data']
+            for x in data:
+                data[x] = data[x]
+            current_data.new_data(eid, data)
+            data = current_data.data_box[eid]
+            picture_name = cd.get_pic(data)
+
+            await self.channel_layer.group_send(eid,{"type": "test_message", "data": {"data": data, "data_type": "live_data","picture":picture_name}})
+
+
+        if content['data_type'] == 'wind_data':
+            current_data = cd.current_data()
+            if 'username' and 'token' in content:
+                self.username = content['username']
+                token = content['token']
+                if not token_module.authenticate(self.username, token):
+                    await self.channel_layer.group_send(self.username, {"type": "test_message", "data": {"data":"token过期","data_type":"token"}})
+                useradmin = token_module.authenticate(self.username, token)
+                await self.channel_layer.group_add(self.username, self.channel_name)
+                wind_data = wd.create_data(self.username)
+                if wind_data["data"]:
+                    await self.channel_layer.group_send(self.username, {"type": "test_message", "data": wind_data})
+                else:
+                    await self.channel_layer.group_send(self.username, {"type": "test_message", "data":{"result":None}})
+            else:
+                await self.channel_layer.group_send(self.eid, {"type": "test_message",
+                                                          "data": {"data": "缺少username/token", "data_type": "token"}})
 
 
 
 
-    async def disconnect(self, code):
-        print('关闭连接')
 
-    async def receive_json(self, content, **kwargs):
-        logging.info(content)
-        await self.channel_layer.group_send('back_end', {"type": "back_connect", "data": {"result": "receive"}})
-
-
-    async def back_connect(self, event):
-        logging.info(event)
-        data = event['data']
-        logging.info(data)
-        await self.send_json(data)

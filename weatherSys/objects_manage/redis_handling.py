@@ -11,7 +11,6 @@ class redis_manage:
         self.redis_1 = StrictRedis(host='localhost', port=6379, db=1, decode_responses=True, password = 'hzg61270388*!')
         self.redis_3 = StrictRedis(host='localhost', port=6379, db=3, decode_responses=True, password='hzg61270388*!')
         self.redis_4 = StrictRedis(host='localhost', port=6379, db=4, decode_responses=True, password = 'hzg61270388*!')
-        print('start redis')
         # self.redis_0.flushall()
         # self.redis_1.flushall()
         # self.redis_4.flushall()
@@ -28,7 +27,6 @@ class redis_manage:
                 extend_data[x[1]][x[2]] = x[3]
             else:
                 extend_data[x[1]] = {x[2]:x[3]}
-        print(extend_data)
 
         # self.redis_4.flushall()
         for x in extend_data:
@@ -61,21 +59,21 @@ class redis_manage:
 def read_equip_name():
     try:
         redis_0 = StrictRedis(host='localhost', port=6379, db=0, decode_responses=True, password='hzg61270388*!')
+        redis_0.flushdb()
         data = db.equip_name_redis()
         data_box = {}
-        print(1)
+
 
         for x in data:
             if x[0] not in data_box:
                 data_box[x[0]] = {'0101':'', '0102':''}
             data_box[x[0]][x[1]]+=x[2] + ':' + x[3]
             data_box[x[0]][x[1]] += ','
-        print(2)
+
         for x in data_box:
             for y in data_box[x]:
                 data_box[x][y] = data_box[x][y][:-1]
-        print(3)
-        print(data_box)
+
         for x in data_box:
             redis_0.hmset(x, data_box[x])
         return True
@@ -103,7 +101,6 @@ def equip_find_user():
             weather[x] = weather[x][:-1]
         for x in soil:
             soil[x] = soil[x][:-1]
-        print('weathery', weather)
         redis_1.hmset('weather_user', weather)
         redis_1.hmset('soil_user', soil)
         return True
@@ -111,37 +108,45 @@ def equip_find_user():
         print(e)
         return False
 
+
+
+
 def read_status():
     try:
         redis_3 = StrictRedis(host='localhost', port=6379, db=3, decode_responses=True, password='hzg61270388*!')
         redis_3.flushdb()
-        data = db.read_status()
-        box = {}
-        for x in data:
-            box[x[0]] = {"station_name":x[1], "longitude":float(x[3]),"latitude":float(x[4]), "address": x[7], "status":x[11], "status_time": x[12]}
-        print(box)
-        for x in box:
+        equip = db.read_status()
+        data = [dict(row) for row in equip]
 
-            redis_3.hset(name = x, mapping = box[x])
+        records = {}
+        for x in data:
+            for y in x:
+                if x[y]:
+                    x[y] = str(x[y])
+                else:
+                    x[y] = ''
+
+        for x in data:
+            records[x['eid']] = x
+            records[x['eid']]['user'] = ''
+        for x in records:
+            records[x].pop('eid')
+        user_dic = {}
+        equip_user = db.equip_user()
+        for x in equip_user:
+            if x[0] not in user_dic:
+                user_dic[x[0]] = [x[1]]
+            else:
+                user_dic[x[0]].append(x[1])
+        for x in user_dic:
+            records[x]['user'] = ','.join(user_dic[x])
+        for x in records:
+            redis_3.hset(name=x, mapping=records[x])
         return True
     except Exception as e:
         print(e)
         return False
 
 
-# class warning_status_monitor:
-#     def __init__(self):
-#         self.redis_1 = StrictRedis(host='localhost', port=6379, db=1, decode_responses=True, password='hzg61270388*!')
-#
-#
-#         return
-#
-#     async def monitor_status(self):
-#         pubsub = self.redis_1.pubsub()
-#         pubsub.psubscribe("__keyevent@1__:hset station_status")
-#         for data in pubsub.listen():
-#             if data:
-#                 data = self.redis_1.hgetall('station_status')
-#                 data
-#                 async_to_sync(channel_layer.group_send)({"type": "test_message", "data": data})
+
 

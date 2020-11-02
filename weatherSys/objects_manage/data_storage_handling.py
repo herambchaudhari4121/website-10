@@ -6,9 +6,7 @@ equipments = db.equipments()
 
 
 def data_transfer(period, eid_list, column):
-    print(period)
     result = db.feature_his(eid_list, column, period, '', '')
-    print(result)
     data = result[0]
     features = {x:[] for x in column}
     for x in data:

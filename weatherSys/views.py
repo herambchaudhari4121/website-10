@@ -71,10 +71,6 @@ class current_data:
 
 
         self.data_box[eid] = data
-# websocket_client = wh.client()
-# user_portal = wh.user_portal_handling()
-# current_data = current_data()
-# print('user:',user_portal.portal)
 
 
 # 历史数据查询
@@ -124,7 +120,6 @@ def show_equip(request):  # 全台站：0.04s
     eid_list = []
     if request.method == 'POST':
         d = json_transfer(request.body)
-        print(d)
         eid_list = d['eid_list']
     records = eh.show_equip(eid_list)
     code = 1
@@ -146,7 +141,6 @@ def equip_name(request):    # 0.03s
         useradmin = token_module.authenticate(username, token)
         username = request.headers['username']
         d = json_transfer(request.body)
-        print(d)
         e_code = d['e_code']
         records = []
         if username == 'admin':
@@ -154,7 +148,10 @@ def equip_name(request):    # 0.03s
             code = 1
 
         else:
-            data = redis_0.hgetall(username)[e_code]
+            try:
+                data = redis_0.hgetall(username)[e_code]
+            except:
+                data = ""
             if data:
                 data = data.split(',')
                 for x in data:
@@ -163,7 +160,7 @@ def equip_name(request):    # 0.03s
             else:
                 code = 0
 
-        msg = {0: '数据获取失败/无数据', 1: '数据获取成功！'}
+        msg = {0: '数据获取失败或无数据', 1: '数据获取成功！'}
         if not records:
             code = 0
         return JsonResponse({'records': records, 'code': code, 'msg': msg[code]}, json_dumps_params={'ensure_ascii':False})
@@ -201,7 +198,6 @@ def reverse_features(request):  # 0.1
         soil_column = ['soil_volume', 'gravimetric_water', 'soil_moisture', 'aswc', 'soil_frequency', 'soil_voltage',
          'nor_frequency']
         records = {'weather':[],'soil':[]}
-        print(records)
         for x in result:
             if result[x] in soil_column:
                 records['soil'].append({'key': result[x], 'value': x})
@@ -263,7 +259,6 @@ def initial_data(request):
         return JsonResponse({'code': -1, 'msg': '缺少token/username'}, json_dumps_params={'ensure_ascii':False})
     if request.method == 'POST':
         d = json_transfer(request.body)  # 从body得到的byte数据转为dict
-        # print(d)
         records = None
         numbers = 0
         username = request.headers['username']
@@ -284,8 +279,6 @@ def initial_data(request):
         msg = {0: '数据获取失败！', 1: '数据获取成功！'}
         if not records:
             code = 0
-        # print(websocket_client.pool)
-        # print('records', records, time.localtime(time.time()))
         return JsonResponse({'records': records, 'code': code, 'msg': msg[code], 'numbers': numbers, 'type': 1},
                             json_dumps_params={'ensure_ascii': False})
 
@@ -344,11 +337,8 @@ def generate_file(request):
                 useradmin = token_module.authenticate(username, token)
                 eid_list = d['eid']
                 file_type = d['file_type']
-                period = [str(int(int(d['start_time']) / 1000)), str(int(int(d['end_time']) / 1000 + 86400))]
-                # print(period)
-                # period = ['1596297600','1596470400']
+                period = [str(int(int(d['start_time']))), str(int(int(d['end_time']) + 86400))]
                 column = d['feature_filter']
-                # counts = redis_manage.download_count(username)
                 redis_counts.incr(username)
                 if int(redis_counts.get(username)) == 1:
                     redis_counts.expire(username, 3600)
@@ -380,10 +370,8 @@ def features_his(request):  # 单要素： 0.12s, 全要素0.16s
     except:
         return JsonResponse({'code': -1, 'msg': '缺少token/username'}, json_dumps_params={'ensure_ascii':False})
     if request.method == "POST":
-        # print(request.body)
         d = json_transfer(request.body)  # 从body得到的byte数据转为dict
         print(d)
-        # print(d)
         records = None
         numbers = 0
         if d:
@@ -392,15 +380,12 @@ def features_his(request):  # 单要素： 0.12s, 全要素0.16s
             try:
                 eid_list = d['eid']
                 page = str(d['page'])
-                period = [str(int(int(d['start_time']) / 1000)), str(int(int(d['end_time']) / 1000 + 86400))]
-                # print(period)
-                # period = ['1596297600','1596470400']
+                period = [str(int(int(d['start_time']))), str(int(int(d['end_time']) + 86400))]
                 feature_filter = d['feature_filter']
                 size = d['size']
                 if not size:
                     size = '15'
                 result = fh.feature_his(eid_list, feature_filter, period, page, size)
-                # print(result,'result')
                 records = result[0]
                 numbers = result[1]
             except Exception as e:
@@ -410,14 +395,53 @@ def features_his(request):  # 单要素： 0.12s, 全要素0.16s
         msg = {0: '数据获取失败！', 1: '数据获取成功！'}
         if not records:
             code = 0
-        print(records)
 
 
-        # print(websocket_client.pool)
-        # print('records', records, time.localtime(time.time()))
         return JsonResponse({'records': records, 'code': code, 'msg': msg[code], 'numbers': numbers, 'type':2}, json_dumps_params={'ensure_ascii':False})
 
 
+def data_share(request):  # 单要素： 0.12s, 全要素0.16s
+    try:
+        token = request.headers['Token']
+        username = request.headers['username']
+        if not token_module.authenticate(username, token):
+            return JsonResponse({'code': -1, 'msg': '登录过期'}, json_dumps_params={'ensure_ascii':False})
+    except:
+        return JsonResponse({'code': -1, 'msg': '缺少token/username'}, json_dumps_params={'ensure_ascii':False})
+    if request.method == "POST":
+        d = json_transfer(request.body)  # 从body得到的byte数据转为dict
+        records = None
+        numbers = 0
+        if d:
+            # 如果字典转换成功，调用fh来查找数据
+            # 返回查找结果
+            try:
+                eid_list = d['eid']
+                page = str(d['page'])
+                period = [str(int(int(d['start_time']))), str(int(int(d['end_time'])))]
+                feature_filter = d['feature_filter']
+                size = d['size']
+                if not size:
+                    size = '15'
+
+                if int(size) > 50:
+                    return JsonResponse(
+                        {'records': None, 'code': -1, 'msg':'size should no more than 50', 'numbers': numbers, 'type': 2},
+                        json_dumps_params={'ensure_ascii': False})
+
+                result = fh.feature_his(eid_list, feature_filter, period, page, size)
+                records = result[0]
+                numbers = result[1]
+            except Exception as e:
+                print(e)
+                records = None
+        code = 1
+        msg = {0: '数据获取失败！', 1: '数据获取成功！'}
+        if not records:
+            code = 0
+
+
+        return JsonResponse({'records': records, 'code': code, 'msg': msg[code], 'numbers': numbers, 'type':2}, json_dumps_params={'ensure_ascii':False})
 
 
 
@@ -468,10 +492,11 @@ def all_service(request):   # 0.08
 
         service_code = d['code']
         service = sh.all_service(service_code, username, useradmin)
-        print(service)
 
-        test = {1:2}
         return JsonResponse({'service': service}, json_dumps_params={'ensure_ascii':False})
+
+
+
 
 
 def user_list(request): # 0.04
@@ -486,6 +511,8 @@ def user_list(request): # 0.04
     username = request.headers['username']
     useradmin = token_module.authenticate(username, token)
     return JsonResponse({'user': uh.user_list(username, useradmin)}, json_dumps_params={'ensure_ascii':False})
+
+
 
 
 def modify_user(request):
@@ -503,8 +530,9 @@ def modify_user(request):
     if request.method == 'POST':
         d = json_transfer(request.body)
 
-        code = uh.modify_user(d['id'], d['user_name'], d['service_code'], d['password'], d['status'])
-        msg = {0: "修改失败!", 1: "修改成功！", 2: "用户名已存在！"}
+
+        code = uh.modify_user(d['id'])
+        msg = {0: "修改失败!", 1: "修改成功！"}
         return JsonResponse({'code': code, 'msg': msg[code]}, json_dumps_params={'ensure_ascii':False})
 
 
@@ -541,7 +569,6 @@ def add_equipments(request):
         return JsonResponse({'code': -1, 'msg': '缺少token/username'}, json_dumps_params={'ensure_ascii': False})
     if request.method == 'POST':
         d = json_transfer(request.body)
-        print(d)
         code = eh.add_equipments(d)
         msg = {0: '失败！', 1: '成功！', 2: '设备station_id重复',
                3: '设备名重复', 4: '设备addr_value重复', 5: '辅助设备station_id重复',
@@ -701,6 +728,17 @@ def delete_equipments(request):
         return JsonResponse({'code': code, 'msg': msg[code]}, json_dumps_params={'ensure_ascii':False})
 
 
+def code_transfer(request):
+    try:
+        token = request.headers['Token']
+        username = request.headers['username']
+        if not token_module.authenticate(username, token):
+            return JsonResponse({'code': -1, 'msg': '登录过期'}, json_dumps_params={'ensure_ascii': False})
+    except:
+        return JsonResponse({'code': -1, 'msg': '缺少token/username'}, json_dumps_params={'ensure_ascii': False})
+    return JsonResponse({x[0]:x[1] for x in db.code_transfer()}, json_dumps_params={'ensure_ascii':False})
+
+
 def equip_all_info(request):    # 0.11
     try:
         token = request.headers['Token']
@@ -712,14 +750,30 @@ def equip_all_info(request):    # 0.11
     e_code_dict = {}
     if request.method == 'POST':
         d = json_transfer(request.body)
-        print(d)
+
         username = request.headers['username']
         useradmin = token_module.authenticate(username, token)
         e_code_dict = {'2': '0101', '3': '0102', '4': '03%', '': ''}
-        # print(websocket_client.pool)
         records = eh.equip_all_info(e_code_dict[d['e_code']], username, useradmin)
 
     return JsonResponse({'records': records}, json_dumps_params={'ensure_ascii':False})
+
+
+
+def show_extra(request):
+    try:
+        token = request.headers['Token']
+        username = request.headers['username']
+        if not token_module.authenticate(username, token):
+            return JsonResponse({'code': -1, 'msg': '登录过期'}, json_dumps_params={'ensure_ascii':False})
+    except:
+        return JsonResponse({'code': -1, 'msg': '缺少token/username'}, json_dumps_params={'ensure_ascii':False})
+    e_code_dict = {}
+    if request.method == 'POST':
+        d = json_transfer(request.body)
+        eid = d['eid']
+
+        return JsonResponse({'records': eh.show_extra(eid)}, json_dumps_params={'ensure_ascii':False})
 
 
 def show_dict(request):     # 0.003
@@ -769,8 +823,8 @@ def manage_parameter(request):      # 0.1S
         return JsonResponse({'code': -1, 'msg': '缺少token/username'}, json_dumps_params={'ensure_ascii': False})
     if request.method == 'POST':
         d = json_transfer(request.body)
-        print(d)
         code = eh.manage_parameter(d)
+        # code = 0
         msg = {0: '失败！', 1: '成功！'}
         return JsonResponse({'code': code, 'msg': msg[code]}, json_dumps_params={'ensure_ascii':False})
 
@@ -808,7 +862,6 @@ def manage_connection(request):
         return JsonResponse({'code': -1, 'msg': '缺少token/username'}, json_dumps_params={'ensure_ascii': False})
     if request.method == 'POST':
         d = json_transfer(request.body)
-        print(d)
 
         code = sh.manage_connection(d)
         msg = {1: '成功！', 2: '用户关系删除失败！', 3: '设备关系删除失败！', 4: '用户关系添加失败！', 5: '设备关系添加失败！'}
@@ -891,7 +944,7 @@ def get_time(request):
     # code = int(json_transfer(result)['code'])
     code = 1
     msg = {0: '失败！', 1: '成功！'}
-    print(result)
+
     return JsonResponse({'code': code, 'msg': msg[code]})
 
 def set_time(request):
@@ -956,9 +1009,9 @@ def re_write_data(request):
         d = json_transfer(request.body)
         identity = d['identity']
         if identity == '1':
-            result = rh.weather_re_write(d['eid_list'], [int(d['start_time'])/1000, int(d['end_time'])/1000], d['key'])
+            result = rh.weather_re_write(d['eid_list'], [int(d['start_time']), int(d['end_time'])], d['key'])
         else:
-            result = rh.soil_re_write(d['eid_list'], int(d['start_time'])/1000, int(d['end_time'])/1000, d['key'])
+            result = rh.soil_re_write(d['eid_list'], int(d['start_time']), int(d['end_time']), d['key'])
         # code = int(json_transfer(result)['code'])
         msg = {0: '失败！', 1: '成功！'}
         code = 1
@@ -996,8 +1049,6 @@ def modify_db_station_id(request):
 # 登录页面
 def login(request):
     if request.method == 'POST':
-        print(request.body)
-        print(request.headers)
         d = json_transfer(request.body)
         username = d['username']
         password = d['password']
@@ -1043,7 +1094,6 @@ def map_point(request):
     useradmin = token_module.authenticate(username, token)
     username = request.headers['username']
     data = eh.map_point(username, useradmin)
-    print(data)
     return JsonResponse({'records':data})
 
 
@@ -1109,9 +1159,7 @@ def line_data(request):
     except:
         return JsonResponse({'code': -1, 'msg': '缺少token/username'}, json_dumps_params={'ensure_ascii':False})
     if request.method == 'POST':
-        print(request.body)
         d = json_transfer(request.body)
-        print(d)
 
         eid = d['eid']
         eid_list = [eid]
@@ -1120,7 +1168,7 @@ def line_data(request):
         if 'start_time' in d:
             start_time = d['start_time']
             end_time = d['end_time']
-            period = [start_time[:-3], end_time[:-3]]
+            period = [start_time, end_time]
         else:
             period = [str(int(time.time() - 3600)), str(int(time.time()))]
         result = fh.line_data(eid_list, column, period)
@@ -1137,7 +1185,6 @@ def traffic_line(request):
     except:
         return JsonResponse({'code': -1, 'msg': '缺少token/username'}, json_dumps_params={'ensure_ascii':False})
     if request.method == 'POST':
-        print(request.body)
         d = json_transfer(request.body)
 
         eid = d['eid']
@@ -1147,7 +1194,7 @@ def traffic_line(request):
         if 'start_time' in d:
             start_time = d['start_time']
             end_time = d['end_time']
-            period = [start_time[:-3], end_time[:-3]]
+            period = [start_time, end_time]
         else:
             period = [str(int(time.time() - 3600)), str(int(time.time()))]
         result = fh.traffic_line(eid_list, column, period)
@@ -1177,13 +1224,10 @@ def token_test(request):
 
 
 def json_transfer(data):
-    # print(data)
     data = str(data)[1:]
     if re.sub("'", '', str(data)):
         data = eval(re.sub("'", '', str(data)))
-        # print(data)
         data = chinese_transfer(data)
-        # print(data)
         return data
     else:
         return False
@@ -1208,193 +1252,22 @@ def chinese_transfer(data):
     return data
 
 
-# @accept_websocket
-# def send_socket(req):
-#     print(req)
-#     if req.is_websocket():
-#         msg = ['1','2','3','4','5','6','7']
-#         count = 0
-#         while True:
-#
-#             for x in msg:
-#                 req.websocket.send(x.encode('utf-8'))
-#                 time.sleep(3)
-#                 count += 1
-#             if count >= 7:
-#                 break
-#         print('收到websocket请求')
 
-
-# @accept_websocket
-# def send_socket(req):
-#     print(req)
-#     if req.is_websocket():
-#         msg = ['1','2','3','4','5','6','7']
-#         count = 0
-#         print(req.websocket)
-#         key = websocket_client.new_websocket(req)
-#         print(key)
-#         while True:
-#
-#             for x in msg:
-#                 websocket_client.push_socket(key, x)
-#                 # req.websocket.send(x.encode('utf-8'))
-#                 time.sleep(3)
-#                 count += 1
-#             if count >= 7:
-#                 websocket_client.close_websocket(key)
-#                 break
-#         print('收到websocket请求')
-
-
-# def socket_thread(key):
-#     # print('socket_s')
-#     # if req.is_websocket():
-#     #     t = threading.Thread(target=send_socket, args=(req))
-#         try:
-#
-#
-#             # print('socket')
-#             # print('socket_start')
-#             # key = websocket_client.new_websocket(req)
-#             # # print(websocket_client.pool)
-#             # websocket_client.push_socket(key, 'key' + str(key))
-#             # user_portal.remove_connection(key)
-#             # print('e', websocket_client.pool)
-#             # print('user:', user_portal.portal)
-#             # print('thread_start')
-#
-#
-#             if websocket_client.pool[key].wait() == None:
-#
-#                 print('thread_stop')
-#
-#             # for message in websocket_client.pool[key]:
-#             #     if not message:
-#             #         print('thread_stop')
-#             #         break
-#
-#             # if websocket_client.pool[key].wait() == None:
-#             #     user_portal.remove_connection(key)
-#             #     print(user_portal)
-#             #     websocket_client.close_websocket(key)
-#             #     print(websocket_client.pool)
-#             #     print('close')
-#             #     print(key)
-#         finally:
-#
-#             user_portal.remove_connection(key)
-#             websocket_client.close_websocket(key)
-#
-#
-#
-#
-# @accept_websocket
-# def send_socket(req):
-#     print('socket_s')
-#     if req.is_websocket():
-#         print('socket_s')
-#         if req.is_websocket():
-#
-#
-#             print('socket')
-#             print('socket_start')
-#             key = websocket_client.new_websocket(req)
-#             # print(websocket_client.pool)
-#             websocket_client.push_socket(key, 'key' + str(key))
-#             user_portal.remove_connection(key)
-#             print('e', websocket_client.pool)
-#             print('user:', user_portal.portal)
-#
-#             t = threading.Thread(target=socket_thread, args=((key,)))
-#             t.start()
-#     #     try:
-#     #         lock = threading.RLock()
-#     #         print('socket')
-#     #         print('socket_start')
-#     #         key = websocket_client.new_websocket(req)
-#     #         # print(websocket_client.pool)
-#     #         websocket_client.push_socket(key, 'key'+str(key))
-#     #         user_portal.remove_connection(key)
-#     #         print('e',websocket_client.pool)
-#     #         print('user:' , user_portal.portal)
-#     #
-#     #         for message in req.websocket:
-#     #             if not message:
-#     #                 break
-#     #
-#     #         # if websocket_client.pool[key].wait() == None:
-#     #         #     user_portal.remove_connection(key)
-#     #         #     print(user_portal)
-#     #         #     websocket_client.close_websocket(key)
-#     #         #     print(websocket_client.pool)
-#     #         #     print('close')
-#     #         #     print(key)
-#     #     finally:
-#     #
-#     #         user_portal.remove_connection(key)
-#     #         websocket_client.close_websocket(key)
-#     #         lock.release()
-#     # else:
-#     #     print('now_socket')
-#
-#
-#
-#
-#
-# def socket_close(request):
-#     if request.method == 'POST':
-#         print('close',websocket_client.pool)
-#         d = json_transfer(request.body)
-#         # print(d['key'])
-#         key = int(d['key'])
-#         user_portal.remove_connection(key)
-#         websocket_client.close_websocket(key)
-#         # print(d)
-#         return HttpResponse('成功！')
-#
-#
-#
-# def select_equipment(request):
-#     if request.method == 'POST':
-#         print('s', websocket_client.pool)
-#         d = json_transfer(request.body)
-#         key = int(d['key'])
-#         user_portal.remove_connection(key)
-#         print('user:' , user_portal.portal)
-#         print(websocket_client.pool)
-#         if d['eid']:
-#             user_portal.select_equip(key, d['eid'])
-#             data = str(current_data.data_box[d['eid']])
-#             data = data.replace("'", '"')
-#             json_data = json.dumps(data, ensure_ascii=False)
-#             # print(json_data)
-#             print(websocket_client.pool)
-#             print(json_data)
-#             websocket_client.push_socket(key, json_data)
-#         code = 1
-#         msg = {0:'失败！', 1:'成功！'}
-#         return JsonResponse({'code': code, 'msg': msg[code]})
-#
-#
 
 
 def live_data_distribution(request):
     if request.method == 'POST':
         data = str(request.body)[1:]
-        print(data)
         if re.sub("'", '', str(data)):
             d = eval(re.sub("'", '', str(data)))
         eid = d['eid']
         data = d['data']
         for x in data:
             data[x] = data[x]
-        print(data)
         current_data.new_data(eid, data, data)
         data = str(current_data.data_box[eid])
         data = data.replace("'", '"')
         json_data = json.dumps(data, ensure_ascii=False)
-        print(json_data)
         # if eid in user_portal.portal:
         #     key = user_portal.portal[eid]
         #     for x in key:
@@ -1402,59 +1275,6 @@ def live_data_distribution(request):
         code = 1
         msg = {0: '失败！', 1: '成功！'}
         return JsonResponse({'code': code, 'msg': msg[code]})
-#
-#
-#
-#
-# # def time_out_test(request):
-# #     while True:
-# #         code = 1
-# #     return JsonResponse({'code': 0, 'msg': '成功！'})
-#
-#
-# def socket_test(request):
-#     return render(request,'socket_test.html')
-#
-#
-# def get_message(request):
-#     if request.method == 'POST':
-#         d = json_transfer(request.body)
-#         key = int(d['uid'])
-#         value = d['value']
-#         websocket_client.push_socket(key, value)
-#
-#     return JsonResponse({'code': 0, 'msg':'成功！'})
-#
-#
-#
-#
-#
-# def ws_test(request):
-#     d = json_transfer(request.body)
-#     key = int(d['key'])
-#     value = d['value']
-#     websocket_client.push_socket(key, value)
-#     return JsonResponse({'code': 0})
-
-
-
-
-
-# def close_socket(request):
-#     d = json_transfer(request.body)
-#     key = int(d['key'])
-#     websocket_client.close_websocket(key)
-#     return JsonResponse({'code': 0})
-
-
-# @require_websocket
-# def stability_test(req):
-#     if req.is_websocket():
-#         key = websocket_client.new_websocket(req)
-#         print(websocket_client.pool)
-#         while True:
-#             websocket_client.push_socket(key, str(key)*1024)
-#             time.sleep(3)
 
 
 def wb_test(request):

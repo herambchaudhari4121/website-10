@@ -36,3 +36,20 @@ class current_data:
 
 
         self.data_box[eid] = data
+
+
+def get_pic(data):
+    if 'rw_sft' in data:
+        if data['rw_sft'] > 0:
+            return 'snow.gif'
+    if 'hraccmltrnfl' in data:
+        if data['hraccmltrnfl'] > 0:
+            return 'rain.gif'
+    if 'ws_avg2mws1' in data:
+        if data['ws_avg2mws1'] > 10.8:
+            return 'wind.gif'
+    if 'av_avg1mhv' in data:
+        if data['av_avg1mhv'] < 500:
+            return 'fog.jpg'
+
+    return 'sun.jpg'

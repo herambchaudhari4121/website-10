@@ -3,6 +3,7 @@ import re
 from DBUtils.PooledDB import PooledDB
 import json
 import time
+import psycopg2.extras
 
 # pool = PooledDB(creator=psycopg2,  # 使用连接数据库的模块 psycopg2
 #                 maxconnections=50,  # 连接池允许的最大连接数，0 和 None 表示不限制连接数
@@ -63,6 +64,23 @@ def wsys_user_pwd(username, pwd):
         return False
 
 
+
+def code_transfer():
+    conn = pool.connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("select code, name from wsys_dict_code")
+        result = cur.fetchall()
+        cur.close()
+        conn.close()
+        return result
+
+    except Exception as e:
+        print(e)
+        cur.close()
+        conn.close()
+        return False
+
 class service:
     conn = pool.connection()
     cur = conn.cursor()
@@ -94,7 +112,6 @@ class service:
                 				where u.user_name = '" + username + "'")
 
             result = self.cur.fetchall()
-            print(result)
             return result
         except Exception as e:
             print(e)
@@ -183,9 +200,9 @@ class service:
             table = "wsys_service_user"
             column = ["user_id", "service_code"]
             # data = [[user_id, service_code]]
-            print('a')
+
             self.cur.execute(insert_query(data, table, column))
-            print('b')
+
         except Exception as e:
             print(e)
             return False
@@ -211,7 +228,6 @@ class service:
         return True
 
     def service_find_equipment(self, service_code):
-
         try:
             self.cur.execute("select e.eid, e.station_name\
                 from wsys_service_equipment s join wsys_equipment_info e on s.eid = e.eid\
@@ -334,6 +350,68 @@ def location():
         cur.close()
         conn.close()
         return None
+
+
+
+def service_find_equipment( service_code):
+
+    conn = pool.connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("select e.eid, e.station_name\
+        from wsys_service_equipment s join wsys_equipment_info e on s.eid = e.eid\
+         left join wsys_dict_code d on e.e_code = d.code where s.code = '" + service_code + "'")
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return data
+
+
+def service_not_children(code):
+    conn = pool.connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    head = "select f.*, q.name as parent_name from wsys_service f left join wsys_service q\
+        on f.parent_code = q.code  where f.code not in (with recursive tmp as ( select a.code\
+        from wsys_service a where code="
+    tail = " union all select a.code from wsys_service a inner join tmp t on t.code=a.parent_code ) select * from tmp) order by f.code"
+    query = head + "'" + code + "'" + tail
+    cur.execute(query)
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return data
+
+
+def all_service(username, useramdin):
+    conn = pool.connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    if useramdin == 2:
+        cur.execute("with recursive tmp as ( select f.*,  CONCAT_ws('/',c.name, b.name , a.name) as address\
+                from wsys_dict_range a join wsys_dict_range b on b.code = a.parent_code\
+                join wsys_dict_range c on c.code = b.parent_code join wsys_service f on f.location_code = a.code\
+                left join wsys_service q on f.parent_code = q.code where f.parent_code = '' or f.parent_code is null\
+                union all select a.* from (select f.*,  CONCAT_ws('/',c.name, b.name , a.name) as address\
+                from wsys_dict_range a join wsys_dict_range b on b.code = a.parent_code\
+                join wsys_dict_range c on c.code = b.parent_code join wsys_service f on f.location_code = a.code\
+                left join wsys_service q on f.parent_code = q.code) a \
+                inner join tmp t on t.code=a.parent_code ) select * from tmp")
+    else:
+        cur.execute("with recursive tmp as ( select f.*, CONCAT_ws('/',c.name, b.name , a.name) as address\
+                            from wsys_dict_range a join wsys_dict_range b on b.code = a.parent_code\
+                            join wsys_dict_range c on c.code = b.parent_code join wsys_service f on f.location_code = a.code\
+                            left join wsys_service q on f.parent_code = q.code where f.parent_code = '' or f.parent_code is null\
+                            union all select a.* from (select f.*, CONCAT_ws('/',c.name, b.name , a.name) as address\
+                            from wsys_dict_range a join wsys_dict_range b on b.code = a.parent_code\
+                            join wsys_dict_range c on c.code = b.parent_code join wsys_service f on f.location_code = a.code\
+                            left join wsys_service q on f.parent_code = q.code) a inner join tmp t on t.code=a.parent_code ) select tmp.* from tmp \
+            				join wsys_service_user su on tmp.code = su.service_code join wsys_user u on su.user_id = u.id\
+            				where u.user_name = '" + username + "'")
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return data
+
+
 
 
 def service_tree(s_code):
@@ -485,9 +563,9 @@ class user:
             table = "wsys_service_user"
             column = ["user_id", "service_code"]
             # data = [[user_id, service_code]]
-            print('a')
+
             self.cur.execute(insert_query(data, table, column))
-            print('b')
+
         except Exception as e:
             print(e)
             return False
@@ -512,33 +590,12 @@ class user:
             return False
         return True
 
-    def user_list(self, username, useramdin):
-        try:
-            if useramdin == 2:
-                self.cur.execute("select u.id, u.user_name, s.name as service_name, w.service_code, u.create_time from wsys_user u\
-                 left join wsys_service_user w on u.id = w.user_id left join wsys_service s on w.service_code = s.code")
-            else:
-                self.cur.execute("select u.id, u.user_name, s.name as service_name, w.service_code, u.create_time from wsys_user u\
-                                 left join wsys_service_user w on u.id = w.user_id left join wsys_service s on w.service_code = s.code\
-                                 where u.user_name = '" + username + "'")
-            return self.cur.fetchall()
-        except Exception as e:
-            print(e)
-            return False
 
-    def modify_user(self, user_id, user_name, password):
+
+    def modify_user(self, user_id):
 
         try:
-            if user_name or password:
-                user_query = "update wsys_user set "
-                if user_name:
-                    user_query += "user_name = "
-                    user_query += "'" + user_name + "',"
-                if password:
-                    user_query += "password = '123456',"
-                user_query = user_query[:-1]
-                user_query += "where id = '" + user_id + "'"
-                self.cur.execute(user_query)
+            self.cur.execute("update wsys_user set password = '123456' where id = '" + user_id + "'")
         except Exception as e:
             print(e)
             return False
@@ -623,15 +680,9 @@ class equipments:
             print(e)
             return False
 
-    def show_extr(self, eid_list):
+    def show_extra(self, eid):
         try:
-            query = "select * from wsys_equipment_extr where p_code like '02%' or p_code = '010202'"
-            if eid_list:
-                query += " and ("
-                for x in eid_list:
-                    query += " eid = '" + x + "' or "
-                query = query[:-4]
-                query += ")"
+            query = "select * from wsys_equipment_extr where eid = '" + eid + "'"
             self.cur.execute(query)
             data = self.cur.fetchall()
             return data
@@ -689,29 +740,15 @@ class equipments:
             return 0
         return 1
 
-    def update_extend(self, update_data):
-        #
-        # try:
-        #     table = 'wsys_equipment_extr'
-        #     w_column = 'id'
-        #
-        #     self.cur.execute(update_query(table, update_data, w_column, w_value))
-        # except Exception as e:
-        #     print(e)
-        #     return False
-        # return True
+    def update_extend(self, update_data, eid):
 
         try:
-            query = "UPDATE wsys_equipment_extr SET p_value = CASE id "
             for x in update_data:
-                if update_data[x]:
 
-                    query += " WHEN " + x + " THEN ARRAY " + "[" + "'" + "','".join(update_data[x]) + "'" + "] "
-                else:
-                    query += " WHEN " + x + " THEN ARRAY [''] "
+                self.cur.execute("update wsys_equipment_extr set p_value = '{" + update_data[x] + "}' \
+                where eid = '" + eid + "' and p_code = '" + x + "'")
 
-            query += " END WHERE id IN (" + ','.join(update_data.keys()) + ")"
-            self.cur.execute(query)
+
         except Exception as e:
             print(e)
             return False
@@ -882,7 +919,7 @@ class equipments:
 
     def get_status(self, username, useradmin):
         try:
-            # print("select e.station_name, s.status, s.opt_time from wsys_eq_info e join wsys_eq_status s on e.eid = s.eid where e_code = '0101'")
+
             if useradmin == 2:
                 self.cur.execute("select e.station_id, e.station_name, st.status, f.obs_time, f.at_at1, f.ah_rh1, f.wd_iwd, f.ws_iws1,\
                     f.mntrnfl, f.av_avg1mhv, f.rs_rst, f.rs_ct10, f.rw_wft, f.rw_ift, f.rw_sft, f.rw_trs, f.wetslipcoef, sn.mainclctrvltgval, e.eid\
@@ -892,7 +929,6 @@ class equipments:
                     join wsys_equipment_status st on e.eid = st.eid\
                     where e.e_code = '0101'\
                     order by e.station_name")
-
             else:
                 self.cur.execute("select e.station_id, e.station_name, st.status, f.obs_time, f.at_at1, f.ah_rh1, f.wd_iwd, f.ws_iws1,\
                     f.mntrnfl, f.av_avg1mhv, f.rs_rst, f.rs_ct10, f.rw_wft, f.rw_ift, f.rw_sft, f.rw_trs, f.wetslipcoef, sn.mainclctrvltgval, e.eid\
@@ -942,6 +978,27 @@ class equipments:
         self.cur = self.conn.cursor()
 
 
+
+def user_list(username, useramdin):
+    conn = pool.connection()
+    cur = conn.cursor(cursor_factory= psycopg2.extras.RealDictCursor)
+
+    if useramdin == 2:
+        cur.execute("select u.id, u.user_name, s.name as service_name, w.service_code, u.create_time from wsys_user u\
+         left join wsys_service_user w on u.id = w.user_id left join wsys_service s on w.service_code = s.code")
+    else:
+        cur.execute("select u.id, u.user_name, s.name as service_name, w.service_code, u.create_time from wsys_user u\
+                         left join wsys_service_user w on u.id = w.user_id left join wsys_service s on w.service_code = s.code\
+                         where u.user_name = '" + username + "'")
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return data
+
+
+
+
+
 def delete_query(table, column, code_list):
     query = "delete from " + table + " where "
     # character = column_is_character(table)
@@ -984,7 +1041,7 @@ def get_success_num(eid_list, useradmin):
     cur = conn.cursor()
     try:
         if useradmin == 2:
-            print("select eid, count(obs_time) from wsys_feature_his where obs_time >= " + str(int(time.time()) - 86400) + " group by eid ")
+
             cur.execute("select eid, count(obs_time) from wsys_feature_his where obs_time >= " + str(int(time.time()) - 86400) + " group by eid ")
             data = cur.fetchall()
         else:
@@ -1001,7 +1058,7 @@ def get_success_num(eid_list, useradmin):
                 return None
         cur.close()
         conn.close()
-        print('data',data)
+
         return data
 
     except Exception as e:
@@ -1009,23 +1066,32 @@ def get_success_num(eid_list, useradmin):
         conn.close()
         print(e)
         return False
+
+
+
 
 
 def read_status():
     conn = pool.connection()
-    cur = conn.cursor()
-    try:
-        cur.execute("select * from wsys_equipment_info e join wsys_equipment_status s on e.eid = s.eid where e_code like '01%'")
-        data = cur.fetchall()
-        cur.close()
-        conn.close()
-        return data
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("select e.eid, e.station_name, e.longitude, e.latitude, e.address, s.status, s.opt_time as status_time \
+        from wsys_equipment_info e left join wsys_equipment_status s on e.eid = s.eid where e.e_code like '01%'")
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return data
 
-    except Exception as e:
-        cur.close()
-        conn.close()
-        print(e)
-        return False
+def equip_user():
+    conn = pool.connection()
+    cur = conn.cursor()
+    cur.execute("select e.eid, u.user_name from wsys_equipment_info e \
+        join wsys_service_equipment se on e.eid = se.eid\
+        join wsys_service_user su on se.code = su.service_code\
+        join wsys_user u on su.user_id = u.id where e.e_code like '01%'")
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return data
 
 
 def get_warning( username, useradmin, period):
@@ -1094,44 +1160,7 @@ def character_column(table):
 
 
 
-# def feature_his(eid_list, column, period, page, size):
-#     conn = pool.connection()
-#     cur = conn.cursor()
-#     try:
-#
-#         start = period[0]
-#         end = period[1]
-#         select_query = "select f.eid, f.obs_time, e.station_name, f.obs_date, e.address, "
-#         from_query = " from wsys_feature_his f left join wsys_equipment_info e on e.eid = f.eid "
-#         id_query = "where ("
-#         total_numbers = 0
-#         for x in eid_list:
-#             id_query += "f.eid = '"
-#             id_query += x
-#             id_query += "' or "
-#         id_query = id_query[:-3]
-#         id_query += ")"
-#         time_query = " and f.obs_time >=" + start + " and f.obs_time <=" + end
-#         if page:
-#             limit_query = " limit " + size + " offset " + str((int(page) - 1) * 12)
-#             page_query = "select count(eid) from wsys_feature_his f group by eid having" + id_query[6:]
-#             cur.execute(page_query)
-#             total_numbers = cur.fetchall()
-#         else:
-#             limit_query = ""
-#         if column == None:
-#             select_query = "select f.*"
-#         else:
-#             for x in column:
-#                 select_query += "f." + x + " , "
-#             select_query = select_query[:-2]
-#         cur.execute(select_query + from_query + id_query + time_query + limit_query)
-#         feature = cur.fetchall()
-#         print(select_query + from_query + id_query + time_query + limit_query)
-#         return feature, total_numbers
-#     except Exception as e:
-#         print(e)
-#         return False
+
 
 
 def initial_data(page, size, username, useradmin):
@@ -1152,7 +1181,7 @@ def initial_data(page, size, username, useradmin):
             left join wsys_quality_now q on f.eid = q.eid and f.obs_time = q.obs_time where e.e_code not like '03%'"
             cur.execute(count_query)
             total_numbers = cur.fetchall()
-            print(total_numbers)
+
             return data, total_numbers[0][0]
         else:
             query = "select f.eid, f.obs_time, e.station_name, f.obs_date, e.address, f.at_at1, f.ah_rh1, f.ws_iws1, f.wd_iwd, \
@@ -1176,7 +1205,7 @@ def initial_data(page, size, username, useradmin):
             where e.e_code not like '03%'"
             cur.execute(count_query)
             total_numbers = cur.fetchall()
-            print(total_numbers)
+
             return data, total_numbers[0][0]
 
     except Exception as e:
@@ -1195,7 +1224,7 @@ def feature_his(eid_list, column, period, page, size):
     conn = pool.connection()
     cur = conn.cursor()
     try:
-        print(period)
+
         start = period[0]
         end = period[1]
         select_query = "select f.eid, f.obs_time, e.station_name, f.obs_date, e.address, "
@@ -1256,7 +1285,7 @@ def traffic_line(eid_list, column, period, page, size):
     conn = pool.connection()
     cur = conn.cursor()
     try:
-        print(period)
+
         start = period[0]
         end = period[1]
         select_query = "select obs_time, "

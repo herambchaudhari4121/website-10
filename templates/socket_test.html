@@ -9,8 +9,9 @@
             //alert("您的浏览器支持WebSocket!");
             // 重定向URL
             var eid = "HZGD12345"
-            let ws = new WebSocket("ws://121.36.193.217:10002/ws/remote_control");
-            var messageObj = {"eid":"HZG070A4007002"};
+            let ws = new WebSocket("ws://121.36.193.217:10022/ws/websocket_connect");
+            var messageObj = {"eid":"HZG070A4007002","last_eid":"bcd","username":"wanglei",
+                "token":"MTYxMTQ1NDEyMS40MzU5MDUyOmVkN2Q1YmUyOGE0ZmI4OTA1NjM5M2ZjOTdkMDAwMTMzMjY3MDcyNjQ=","data_type":"wind_data"};
             var messageJson = JSON.stringify(messageObj);
             ws.onopen = function () {
                 // Web Socket 已连接上，使用 send() 方法发送数据

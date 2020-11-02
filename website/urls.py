@@ -51,6 +51,7 @@ urlpatterns = [
     path('delete_service', views.delete_service),
     path('map_point', views.map_point),
     path('get_status', views.get_status),
+    path('show_extra', views.show_extra),
     # path('service_connection', views.service_connection),
     path('equip_type', views.equip_type),
     path('add_equipments', views.add_equipments),
@@ -81,6 +82,7 @@ urlpatterns = [
     # path('get_message', views.get_message),
     # path('select_equipment', views.select_equipment),
     path('live_data_distribution', v.live_data_distribution),
+    path('data_share',views.data_share),
     path('get_live_data', v.get_live_data),
     path('reverse_features', views.reverse_features),
     path('device_remote_control', v.device_remote_control),
@@ -104,6 +106,7 @@ urlpatterns = [
     path('ch_manage_parameter', chongqing_v.manage_parameter),
     path('ch_kriging', chongqing_v.kriging),
     path('traffic_line', views.traffic_line),
+    path('code_transfer', views.code_transfer),
     # path('socket_close', views.socket_close)
     # path('time_out_test', views.time_out_test)
     # path('close_socket', views.close_socket)
